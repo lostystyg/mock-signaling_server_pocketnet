@@ -52,7 +52,7 @@ const protocol = (ip, message) => {
   if (dest) {
     message.ip = ip; // TODO: same message but receiver is changed to sender
     const data = JSON.stringify(message);
-    console.log(`Client ${destIp} >> ${data}`);
+    // console.log(`Client ${destIp} >> ${data}`);
     dest.send(data);
   } else {
     console.error(`Client ${destIp} not found`);
@@ -61,6 +61,7 @@ const protocol = (ip, message) => {
 
 const registerMe = (ip, connection) => {
   registeredClients[ip] = connection
+  console.log('Registered ip: ' + ip)
 }
 
 const wsServer = new websocket.server({httpServer});
@@ -70,9 +71,10 @@ wsServer.on('request', (req) => {
   const ip = req.remoteAddress;
 
   const conn = req.accept(null, req.origin);
+  clients[ip] = conn;
   conn.on('message', (data) => {
     if (data.type === 'utf8') {
-      console.log(`Client ${ip} << ${data.utf8Data}`);
+      // console.log(`Client ${ip} << ${data.utf8Data}`);
 
       const message = JSON.parse(data.utf8Data);
       if (message.type == 'protocol') {
@@ -84,14 +86,14 @@ wsServer.on('request', (req) => {
       }
     }
   });
-  conn.on('close', () => {
+  conn.on('close', (code, desc) => {
     delete clients[ip];
     if (registeredClients[ip])
       delete registeredClients[ip]
-    console.error(`Client ${ip} disconnected`);
+    console.error(`Client ${ip} disconnected with code ${code}`);
+    console.log(desc);
   });
 
-  clients[ip] = conn;
 });
 
 const endpoint = process.env.PORT || '8000';
@@ -101,4 +103,3 @@ const hostname = '0.0.0.0';
 
 httpServer.listen(port, hostname,
                   () => { console.log(`Server listening on ${hostname}:${port}`); });
-
